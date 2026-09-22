@@ -1,0 +1,48 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      # The platform team standardised on Go 1.22, so the toolchain is pinned by
+      # image tag rather than relying on whatever Go a generic build image ships.
+      # cimg/go:1.22 tracks the latest patch of the 1.22 line (currently 1.22.12,
+      # the final 1.22 release), so this stays inside the mandated minor version.
+      - image: cimg/go:1.22
+    environment:
+      # go.mod declares "go 1.21", so Go 1.22 builds it without a toolchain
+      # switch. GOTOOLCHAIN=local makes that guarantee explicit: if the module
+      # ever asks for a different toolchain, the build fails loudly instead of
+      # quietly downloading another Go and defeating the 1.22 requirement.
+      GOTOOLCHAIN: local
+    steps:
+      - checkout
+
+      # Fail fast with a clear message if the image ever drifts off Go 1.22,
+      # rather than letting the wrong compiler produce a green build.
+      - run:
+          name: Verify Go 1.22 toolchain
+          command: |
+            go version
+            case "$(go env GOVERSION)" in
+              go1.22 | go1.22.*)
+                echo "Using $(go env GOVERSION) as required."
+                ;;
+              *)
+                echo "ERROR: expected Go 1.22.x, got $(go env GOVERSION)" >&2
+                exit 1
+                ;;
+            esac
+
+      # ./... covers every package in the module: the root "tokenbucket"
+      # package and the cmd/tokenbucket command.
+      # No dependency cache here on purpose: the module has no requirements and
+      # no go.sum, so there is nothing to download and nothing to key a cache on.
+      - run:
+          name: Build all packages
+          command: go build ./...
+
+workflows:
+  build:
+    jobs:
+      # No branch/tag filters, so this runs on every push.
+      - build

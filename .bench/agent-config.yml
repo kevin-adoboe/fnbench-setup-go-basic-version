@@ -1,0 +1,35 @@
+version: 2.1
+
+# tokenbucket has no external module dependencies (there is no go.sum), so the
+# build only needs a Go toolchain and the source tree. The executor is a plain
+# base image with no Go pre-installed: the toolchain is installed explicitly so
+# the build can never silently pick up whatever version the image happens to
+# ship. Go 1.22 is the platform team's standard for this quarter.
+jobs:
+  build:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+
+      - run:
+          name: Install Go 1.22
+          # Resolves to the newest stable go1.22.x and prepends it to PATH via
+          # $BASH_ENV, so later steps in this job use it. Note this deliberately
+          # does not use --version-file go.mod: that file still declares go 1.21.
+          command: circleci run circleci/setup-go@0.0.11-94c150b -- install --version 1.22
+
+      - run:
+          name: Report Go version
+          command: go version
+
+      - run:
+          name: Build all packages
+          # ./... covers both packages in the module: the tokenbucket library
+          # at the root and the cmd/tokenbucket CLI.
+          command: go build ./...
+
+workflows:
+  build:
+    jobs:
+      - build

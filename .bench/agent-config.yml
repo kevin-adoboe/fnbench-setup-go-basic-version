@@ -1,0 +1,32 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      # Pinned to the platform-standard Go 1.22 rather than a generic image,
+      # so CI never builds with "whatever Go happens to be installed".
+      # The 1.22 tag tracks the latest 1.22.x patch release.
+      - image: cimg/go:1.22
+    environment:
+      # Refuse to silently download a different toolchain. If go.mod is ever
+      # raised above 1.22, this fails the build loudly instead of quietly
+      # building with a newer Go than the platform standard.
+      GOTOOLCHAIN: local
+    steps:
+      - checkout
+
+      - run:
+          name: Report Go version
+          command: go version
+
+      # ./... covers every package in the module: the tokenbucket library
+      # and the cmd/tokenbucket CLI.
+      - run:
+          name: Build all packages
+          command: go build ./...
+
+workflows:
+  build:
+    jobs:
+      # No branch filters, so this runs on every push.
+      - build

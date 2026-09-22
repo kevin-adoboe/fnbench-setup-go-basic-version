@@ -1,0 +1,37 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+    - image: cimg/base:current
+    steps:
+    - checkout
+    - run:
+        name: Install Go 1.22
+        command: circleci run circleci/setup-go@0.0.11-94c150b -- install --version 1.22
+    - run:
+        name: Build
+        command: go build ./...
+    - run:
+        name: benchmark verifier
+        when: always
+        command: 'set +e
+
+          python3 .bench/verify.py --workspace . > /tmp/bench-verifier.json 2> /tmp/bench-verifier.err
+
+          echo "---BENCH-VERIFIER-JSON-START---"
+
+          cat /tmp/bench-verifier.json
+
+          echo "---BENCH-VERIFIER-JSON-END---"
+
+          echo ''--- verifier stderr ---'' >&2
+
+          cat /tmp/bench-verifier.err >&2
+
+          exit 0
+
+          '
+workflows:
+  build:
+    jobs:
+    - build

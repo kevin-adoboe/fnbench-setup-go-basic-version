@@ -1,0 +1,29 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      # cimg/base ships no Go toolchain, so the only Go on PATH is the one
+      # setup-go installs below. Nothing can silently drift to another version.
+      - image: cimg/base:current
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Install Go 1.22
+          # Pinned to 1.22 explicitly rather than read from go.mod: the module
+          # still declares `go 1.21`, and the platform standard is 1.22.
+          command: circleci run circleci/setup-go@0.0.11-94c150b -- install --version 1.22
+      - run:
+          name: Report Go version
+          command: go version
+      - run:
+          name: Build all packages
+          # ./... covers the root tokenbucket package and cmd/tokenbucket.
+          command: go build ./...
+
+workflows:
+  build:
+    jobs:
+      # No branch/tag filters, so this runs on every push.
+      - build

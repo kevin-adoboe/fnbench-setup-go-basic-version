@@ -1,0 +1,21 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      # Pinned to the Go 1.22 convenience image so the toolchain is the one the
+      # platform team standardised on, not whatever ships on a generic image.
+      - image: cimg/go:1.22
+    steps:
+      - checkout
+      - run:
+          name: Report Go version
+          command: go version
+      - run:
+          name: Build all packages
+          command: go build ./...
+
+workflows:
+  build-on-push:
+    jobs:
+      - build

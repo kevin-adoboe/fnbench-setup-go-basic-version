@@ -1,0 +1,28 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      # cimg/base carries no Go toolchain of its own, so the only Go on PATH is
+      # the one setup-go installs below. That is what we want here: the platform
+      # standard is 1.22, not "whatever the image happens to ship".
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - run:
+          name: Install Go 1.22
+          # Pinned to --version 1.22 (newest 1.22.x) on purpose. go.mod still
+          # declares "go 1.21", so --version-file would install the wrong
+          # toolchain for this quarter's standard.
+          command: circleci run circleci/setup-go@0.0.11-94c150b -- install --version 1.22
+      - run:
+          name: Report Go version
+          command: go version
+      - run:
+          name: Build all packages
+          command: go build ./...
+
+workflows:
+  build:
+    jobs:
+      - build
